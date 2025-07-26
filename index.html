@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통합 베팅 시스템 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .settings, .simulator, .status, .log-container {
+            margin-bottom: 20px;
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            margin-bottom: 5px;
+            color: #bbbbbb;
+        }
+        .input-group input, .input-group select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn-start {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-start:hover {
+            background-color: #0056b3;
+        }
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        .btn-win { background-color: #28a745; color: white; }
+        .btn-win:hover { background-color: #218838; }
+        .btn-lose { background-color: #dc3545; color: white; }
+        .btn-lose:hover { background-color: #c82333; }
+        .btn-prev { background-color: #ffc107; color: #333; }
+        .btn-prev:hover { background-color: #e0a800; }
+        .btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            color: #888;
+        }
+        .status-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            text-align: center;
+        }
+        .status-item {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .status-item h3 {
+            margin: 0 0 5px 0;
+            color: #aaaaaa;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .status-item p {
+            margin: 0;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        #log {
+            height: 150px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .log-entry { margin: 5px 0; border-bottom: 1px dashed #444; padding-bottom: 5px; }
+        .log-entry:first-child { border-bottom: none; }
+        .log-win { color: #28a745; }
+        .log-lose { color: #dc3545; }
+        .log-info { color: #00bcd4; }
+        .disclaimer { margin-top: 25px; text-align: center; font-size: 12px; color: #888; padding: 0 10px; }
+        .disclaimer p { margin: 0; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>⚙️ 통합 베팅 시스템 시뮬레이터</h1>
+
+        <div class="settings">
+            <div class="input-group">
+                <label for="systemSelector">베팅 시스템 선택</label>
+                <select id="systemSelector">
+                    <option value="dalembert">달랑베르 (D'Alembert)</option>
+                    <option value="fibonacci">피보나치 (Fibonacci)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="initialBalance">초기 자본</label>
+                <input type="number" id="initialBalance" value="1000">
+            </div>
+            <div class="input-group">
+                <label for="unitBet">기본 단위 금액</label>
+                <input type="number" id="unitBet" value="10">
+            </div>
+            <button id="startButton" class="btn btn-start">시작 / 리셋</button>
+        </div>
+
+        <div class="status">
+            <div class="status-display">
+                <div class="status-item">
+                    <h3>현재 자본</h3>
+                    <p id="currentBalance">N/A</p>
+                </div>
+                <div class="status-item">
+                    <h3>다음 베팅액</h3>
+                    <p id="nextBet">N/A</p>
+                </div>
+                 <div class="status-item">
+                    <h3>승 / 패</h3>
+                    <p id="winLossCount">N/A</p>
+                </div>
+                 <div class="status-item">
+                    <h3>손익</h3>
+                    <p id="profit">N/A</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="simulator">
+            <div class="action-buttons">
+                <button id="winButton" class="btn btn-win" disabled>💰 승리</button>
+                <button id="loseButton" class="btn btn-lose" disabled>💸 패배</button>
+                <button id="prevButton" class="btn btn-prev" disabled>⏪ 이전</button>
+            </div>
+        </div>
+
+        <div class="log-container">
+            <h3>베팅 기록</h3>
+            <div id="log"></div>
+        </div>
+        
+        <div class="disclaimer">
+            <p>본 시스템의 이용으로 발생하는 모든 결과에 대한 법적·재정적 책임은 이용자 본인에게 있습니다.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const systemSelectorEl = document.getElementById('systemSelector');
+        const initialBalanceEl = document.getElementById('initialBalance');
+        const unitBetEl = document.getElementById('unitBet');
+        const startButton = document.getElementById('startButton');
+        const winButton = document.getElementById('winButton');
+        const loseButton = document.getElementById('loseButton');
+        const prevButton = document.getElementById('prevButton');
+        const currentBalanceEl = document.getElementById('currentBalance');
+        const nextBetEl = document.getElementById('nextBet');
+        const winLossCountEl = document.getElementById('winLossCount');
+        const profitEl = document.getElementById('profit');
+        const logEl = document.getElementById('log');
+
+        // State
+        let activeSystem, initialBalance, unitBet;
+        let currentBalance, currentBet, betCount, winCount, lossCount;
+        let fibSequence, sequenceIndex;
+        let history = [];
+
+        function formatCurrency(num) {
+            return num.toLocaleString();
+        }
+
+        function addToLog(message, type) {
+            const entry = document.createElement('p');
+            entry.className = `log-entry log-${type}`;
+            const round = betCount > 0 ? `[${betCount}회]` : `[시작]`;
+            entry.textContent = `${round} ${message}`;
+            logEl.prepend(entry);
+        }
+
+        function updateDisplay() {
+            currentBalanceEl.textContent = formatCurrency(currentBalance);
+            nextBetEl.textContent = formatCurrency(currentBet);
+            winLossCountEl.textContent = `${winCount} / ${lossCount}`;
+            const profit = currentBalance - initialBalance;
+            profitEl.textContent = formatCurrency(profit);
+            profitEl.style.color = profit > 0 ? '#28a745' : profit < 0 ? '#dc3545' : '#ffffff';
+            
+            winButton.disabled = false;
+            loseButton.disabled = false;
+
+            if (currentBalance < currentBet) {
+                winButton.disabled = true;
+                loseButton.disabled = true;
+                if(betCount > 0) addToLog(`자본 부족! 게임이 종료됩니다.`, 'lose');
+            }
+        }
+
+        function saveState() {
+            history.push({
+                currentBalance, currentBet, betCount, winCount, lossCount,
+                sequenceIndex: sequenceIndex, // 피보나치 상태 추가
+                logContent: logEl.innerHTML
+            });
+            prevButton.disabled = false;
+        }
+
+        function restoreState() {
+            if (history.length > 0) {
+                const prevState = history.pop();
+                currentBalance = prevState.currentBalance;
+                currentBet = prevState.currentBet;
+                betCount = prevState.betCount;
+                winCount = prevState.winCount;
+                lossCount = prevState.lossCount;
+                sequenceIndex = prevState.sequenceIndex; // 피보나치 상태 복원
+                logEl.innerHTML = prevState.logContent;
+                
+                updateDisplay();
+                
+                if (history.length === 0) {
+                    prevButton.disabled = true;
+                }
+            }
+        }
+
+        function initialize() {
+            activeSystem = systemSelectorEl.value;
+            initialBalance = parseInt(initialBalanceEl.value);
+            unitBet = parseInt(unitBetEl.value);
+
+            if (isNaN(initialBalance) || isNaN(unitBet) || initialBalance <= 0 || unitBet <= 0) {
+                alert('모든 값을 올바르게 입력해주세요.'); return;
+            }
+            if(initialBalance < unitBet) {
+                alert('초기 자본은 기본 단위 금액보다 커야 합니다.'); return;
+            }
+
+            currentBalance = initialBalance;
+            betCount = 0; winCount = 0; lossCount = 0;
+            history = [];
+            logEl.innerHTML = '';
+
+            if (activeSystem === 'fibonacci') {
+                fibSequence = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
+                sequenceIndex = 0;
+                currentBet = fibSequence[sequenceIndex] * unitBet;
+            } else { // dalembert
+                currentBet = unitBet;
+            }
+
+            addToLog(`시뮬레이터 시작 (${activeSystem}). 기본 단위: ${formatCurrency(unitBet)}`, 'info');
+            updateDisplay();
+            
+            winButton.disabled = false;
+            loseButton.disabled = false;
+            prevButton.disabled = true;
+        }
+
+        function handleBet(isWin) {
+            if (currentBalance < currentBet) return;
+
+            saveState();
+            betCount++;
+            
+            const betAmount = currentBet;
+            
+            if (isWin) {
+                winCount++;
+                currentBalance += betAmount;
+                if (activeSystem === 'fibonacci') {
+                    sequenceIndex = Math.max(0, sequenceIndex - 2);
+                    currentBet = fibSequence[sequenceIndex] * unitBet;
+                } else { // dalembert
+                    currentBet = Math.max(unitBet, currentBet - unitBet);
+                }
+                addToLog(`승리! +${formatCurrency(betAmount)}.`, 'win');
+            } else { // Lose
+                lossCount++;
+                currentBalance -= betAmount;
+                 if (activeSystem === 'fibonacci') {
+                    sequenceIndex++;
+                    if (sequenceIndex >= fibSequence.length) {
+                        const nextFib = fibSequence[fibSequence.length - 1] + fibSequence[fibSequence.length - 2];
+                        fibSequence.push(nextFib);
+                    }
+                    currentBet = fibSequence[sequenceIndex] * unitBet;
+                } else { // dalembert
+                    currentBet += unitBet;
+                }
+                addToLog(`패배... -${formatCurrency(betAmount)}.`, 'lose');
+            }
+            updateDisplay();
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', initialize);
+        winButton.addEventListener('click', () => handleBet(true));
+        loseButton.addEventListener('click', () => handleBet(false));
+        prevButton.addEventListener('click', restoreState);
+
+        // Initial setup
+        initialize();
+    </script>
+</body>
+</html>
